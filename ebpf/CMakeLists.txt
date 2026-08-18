@@ -49,6 +49,13 @@ set(VMLINUX_H   ${CMAKE_CURRENT_BINARY_DIR}/vmlinux.h)
 set(BPF_OBJ     ${CMAKE_CURRENT_BINARY_DIR}/fileguard.bpf.o)
 set(SKEL_H      ${CMAKE_CURRENT_BINARY_DIR}/fileguard.skel.h)
 
+# The BPF program compiles freestanding: -nostdinc drops the host libc
+# (glibc's <stdint.h> is unusable under -target bpf); clang's own freestanding
+# headers (stdint/stdbool/stddef) come from the resource dir.
+execute_process(COMMAND clang -print-resource-dir
+                OUTPUT_VARIABLE CLANG_RESOURCE_DIR
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+
 add_custom_command(
     OUTPUT ${VMLINUX_H}
     COMMAND ${BPFTOOL} btf dump file /sys/kernel/btf/vmlinux format c > ${VMLINUX_H}
@@ -58,10 +65,12 @@ add_custom_command(
 
 add_custom_command(
     OUTPUT ${BPF_OBJ}
-    COMMAND clang -g -O2 -target bpf -D__TARGET_ARCH_${BPF_TARGET_ARCH}
+    COMMAND clang -g -O2 -target bpf -nostdinc -D__TARGET_ARCH_${BPF_TARGET_ARCH}
             -I${CMAKE_CURRENT_BINARY_DIR}
             -I${CMAKE_CURRENT_SOURCE_DIR}
             -I${CMAKE_SOURCE_DIR}/include/fileguard
+            -isystem ${CLANG_RESOURCE_DIR}/include
+            -idirafter ${LIBBPF_INCLUDE_DIRS}
             -c ${CMAKE_CURRENT_SOURCE_DIR}/fileguard.bpf.c
             -o ${BPF_OBJ}
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/fileguard.bpf.c ${VMLINUX_H}

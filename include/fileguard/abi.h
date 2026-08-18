@@ -1,9 +1,12 @@
 // fileguard_abi.h — shared ABI between the eBPF kernel program and the
 // userspace controller.
 //
-// This header is C and C++ compatible. The eBPF program includes it directly;
-// the userspace C++ code includes it via <fileguard/abi.h>. Keep this small:
-// everything here crosses the kernel/userspace boundary.
+// This header is C and C++ compatible AND intentionally does not include any
+// standard library header: it is consumed by the eBPF program, which compiles
+// in a freestanding, libc-less environment (-target bpf). Fixed-width types
+// are defined locally with primitives whose sizes are stable on every
+// supported target (x86_64, arm64, s390x, riscv64, macOS): `unsigned int` is
+// 32-bit and `unsigned long long` is 64-bit everywhere.
 //
 // Conventions
 // -----------
@@ -13,7 +16,11 @@
 #ifndef FILEGUARD_ABI_H
 #define FILEGUARD_ABI_H
 
-#include <stdint.h>
+/* Fixed-width types without <stdint.h> (see above). */
+typedef unsigned char      fg_u8;
+typedef unsigned short     fg_u16;
+typedef unsigned int       fg_u32;
+typedef unsigned long long fg_u64;
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,9 +65,9 @@ enum {
  * This keeps the comparison correct regardless of the dev_t encoding in use.
  */
 typedef struct {
-    uint32_t dev_major;
-    uint32_t dev_minor;
-    uint64_t ino;
+    fg_u32 dev_major;
+    fg_u32 dev_minor;
+    fg_u64 ino;
 } fileguard_file_id_t;
 
 /* Key for a (resource, process) policy rule in the rules hash map. */
@@ -71,40 +78,40 @@ typedef struct {
 
 /* Value for a policy rule. */
 typedef struct {
-    uint32_t rule_id;
-    uint32_t action;     /* FG_ACTION_* */
-    uint32_t operation;  /* FG_OP_* */
-    uint32_t reserved;
+    fg_u32 rule_id;
+    fg_u32 action;     /* FG_ACTION_* */
+    fg_u32 operation;  /* FG_OP_* */
+    fg_u32 reserved;
 } fileguard_rule_val_t;
 
 /* Value for the protected-resources hash map (membership test only). */
 typedef struct {
-    uint8_t reserved;    /* non-NULL presence in the map is what matters */
+    fg_u8 reserved;    /* non-NULL presence in the map is what matters */
 } fileguard_protected_val_t;
 
 /* Single-element config array map. */
 typedef struct {
-    uint32_t policy_version;
-    uint32_t enabled;    /* 0 = pass-through (fail-open), 1 = enforcing */
-    uint32_t reserved[2];
+    fg_u32 policy_version;
+    fg_u32 enabled;    /* 0 = pass-through (fail-open), 1 = enforcing */
+    fg_u32 reserved[2];
 } fileguard_config_t;
 
 /* Ringbuf event record — keep small and aligned. */
 typedef struct {
-    uint32_t magic;                 /* FG_MAGIC */
-    uint64_t timestamp_ns;          /* bpf_ktime_get_ns() */
-    uint32_t pid;                   /* thread id (kernel view) */
-    uint32_t tgid;                  /* process id (kernel view) */
-    uint32_t uid;
-    uint32_t gid;
-    fileguard_file_id_t res;        /* opened file */
-    fileguard_file_id_t proc;       /* opening process executable */
-    uint32_t rule_id;
-    uint8_t  operation;             /* FG_OP_* */
-    uint8_t  action;                /* FG_ACTION_* */
-    uint8_t  reason;                /* FG_REASON_* */
-    uint8_t  pad;
-    char     comm[FG_MAX_COMM];
+    fg_u32 magic;                 /* FG_MAGIC */
+    fg_u64 timestamp_ns;          /* bpf_ktime_get_ns() */
+    fg_u32 pid;                   /* thread id (kernel view) */
+    fg_u32 tgid;                  /* process id (kernel view) */
+    fg_u32 uid;
+    fg_u32 gid;
+    fileguard_file_id_t res;      /* opened file */
+    fileguard_file_id_t proc;     /* opening process executable */
+    fg_u32 rule_id;
+    fg_u8  operation;             /* FG_OP_* */
+    fg_u8  action;                /* FG_ACTION_* */
+    fg_u8  reason;                /* FG_REASON_* */
+    fg_u8  pad;
+    char   comm[FG_MAX_COMM];
 } fileguard_event_t;
 
 #ifdef __cplusplus
