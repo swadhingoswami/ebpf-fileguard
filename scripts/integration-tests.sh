@@ -101,8 +101,17 @@ expect_allow() { # $1=label  $2=cmd...
 }
 
 # ================================================================ tests
-log "Test 1 — allowed process"
+log "Diagnostics — daemon state and kernel decisions"
 start_daemon "$TMP/policy-allow.json"
+"$FG" status --runtime-dir "$RUNDIR"
+"$FG" policy list --runtime-dir "$RUNDIR"
+"$AGENT" "$SECRET" >/dev/null 2>&1 && echo "  diag: backup-agent open -> ALLOW (exit 0)" || echo "  diag: backup-agent open -> DENY (exit $?)"
+cat "$SECRET" >/dev/null 2>&1 && echo "  diag: cat open -> ALLOW (exit 0)" || echo "  diag: cat open -> DENY (exit $?)"
+echo "  diag: streaming events (2s)..."
+timeout 2 "$FG" events --runtime-dir "$RUNDIR" --count 4 --json 2>&1 | head -8 || true
+echo "  diag: done"
+
+log "Test 1 — allowed process"
 expect_allow "backup-agent -> $SECRET ALLOW" "$AGENT" "$SECRET"
 
 log "Test 2 — unauthorized process"
@@ -139,9 +148,12 @@ start_daemon "$TMP/policy-allow.json"
 expect_allow "backup-agent ALLOW again after reload" "$AGENT" "$SECRET"
 
 log "Test 6 — invalid policy rejected, previous stays active"
-if "$FG" policy load config/policy.invalid.json --runtime-dir "$RUNDIR" 2>&1 | grep -q "rejected\|invalid"; then
+# Note: with `pipefail` a rejected `policy load` makes the whole pipeline fail,
+# so check the CLI exit code directly instead of the pipe.
+out=$("$FG" policy load config/policy.invalid.json --runtime-dir "$RUNDIR" 2>&1); rc=$?
+if [[ $rc -ne 0 ]] && printf '%s' "$out" | grep -q "invalid\|rejected"; then
     ok "invalid policy rejected"
-else bad "invalid policy not rejected"; fi
+else bad "invalid policy not rejected (rc=$rc: $out)"; fi
 expect_allow "previous (allow) policy still active" "$AGENT" "$SECRET"
 
 log "Test 7 — executable replacement changes identity (Level-1 weakness)"
@@ -188,14 +200,20 @@ sleep 0.5
 if cat "$SECRET" >/dev/null 2>&1; then ok "after unload, system is fail-open (documented)"; else bad "expected fail-open"; fi
 
 log "Security spot-checks"
-if [[ "$(stat -c %a config/policy.example.json 2>/dev/null || stat -f %Lp config/policy.example.json 2>/dev/null)" =~ [0-9] ]]; then
-    :; # file-mode check below uses POSIX stat
-fi
+# Policy files live in git (0644); the requirement is that they are not
+# group/world *writable* and that the runtime control socket is protected.
 perms=$(stat -c "%a" config/policy.example.json 2>/dev/null || stat -f "%Lp" config/policy.example.json)
-case "$perms" in
-    "600"|"400"|"500"|"700") ok "policy file is not group/world writable (mode $perms)" ;;
-    *) bad "policy file mode is $perms — tighten to 0600" ;;
-esac
+if [ $(( 8#$perms & 8#22 )) -ne 0 ]; then
+    bad "policy file mode is $perms — must not be writable by group/world"
+else
+    ok "policy file is not group/world writable (mode $perms)"
+fi
+sock_mode=$(stat -c "%a" "$RUNDIR/fileguard.sock" 2>/dev/null || stat -f "%Lp" "$RUNDIR/fileguard.sock")
+if [ "$sock_mode" = "600" ]; then
+    ok "control socket mode 0600"
+else
+    bad "control socket mode is $sock_mode (expected 0600)"
+fi
 
 # UID change: a different uid running an unauthorized binary stays denied.
 if id -u daemon >/dev/null 2>&1; then
