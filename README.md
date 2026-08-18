@@ -10,6 +10,16 @@
 > explicitly authorized executable may open them — nothing else, not even
 > `cat` as root — and every decision is emitted as a structured security event.
 
+**Build details**
+
+| | |
+|---|---|
+| Version | `0.1.0` |
+| Latest commit | [`8597ea3`](https://github.com/swadhingoswami/ebpf-fileguard/commit/8597ea3755479d4963f73297dd3753a058727fae) |
+| Branch | `main` |
+| Language / standard | C++23 (`gcc ≥ 13`, `clang ≥ 16`) |
+| Kernel | Linux ≥ 5.7 with `CONFIG_BPF_LSM`, `CONFIG_BPF_RINGBUF`, `CONFIG_DEBUG_INFO_BTF` |
+
 ---
 
 ## Table of contents
