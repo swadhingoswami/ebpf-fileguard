@@ -1,3 +1,5 @@
+<img width="1408" height="768" alt="image" src="https://github.com/user-attachments/assets/6fac4d40-f448-4e48-912a-94fb3a68b5c2" />
+
 # eBPF FileGuard
 
 [![CI](https://github.com/swadhingoswami/ebpf-fileguard/actions/workflows/ci.yml/badge.svg)](https://github.com/swadhingoswami/ebpf-fileguard/actions/workflows/ci.yml)
@@ -30,6 +32,9 @@
 ---
 
 ## 1. The problem we are solving
+
+<img width="1408" height="768" alt="image" src="https://github.com/user-attachments/assets/e7319206-ae7d-4f80-a289-6cd2b02302e9" />
+
 
 ### The core problem
 
