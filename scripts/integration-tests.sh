@@ -102,6 +102,9 @@ expect_allow() { # $1=label  $2=cmd...
 
 # ================================================================ tests
 log "Diagnostics — daemon state and kernel decisions"
+uname -r
+echo "  enabled LSMs: $(cat /sys/kernel/security/lsm 2>/dev/null || echo '<read failed>')"
+grep -q bpf /sys/kernel/security/lsm 2>/dev/null && echo "  bpf LSM: enabled" || echo "  bpf LSM: NOT enabled"
 start_daemon "$TMP/policy-allow.json"
 "$FG" status --runtime-dir "$RUNDIR"
 "$FG" policy list --runtime-dir "$RUNDIR"
