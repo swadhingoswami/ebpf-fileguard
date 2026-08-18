@@ -37,7 +37,8 @@
 11. [Security model & limitations](#11-security-model--limitations)
 12. [Documentation & repository](#12-documentation--repository)
 13. [FAQ](#13-faq)
-14. [License](#14-license)
+14. [Keywords / hashtags](#14-keywords--hashtags)
+15. [License](#15-license)
 
 ---
 
@@ -624,6 +625,23 @@ the host returns to fail-open until a controller runs again.
 
 ---
 
-## 14. License
+## 14. Keywords / hashtags
+
+**#eBPF** **#eBPFLSM** **#Linux** **#LinuxSecurity** **#LinuxKernel** **#CPlusPlus**
+**#Cpp23** **#SecurityEngineering** **#FileAccessControl** **#AccessControl**
+**#DefaultDeny** **#AllowList** **#LSM** **#BPF** **#CO-RE** **#BTF**
+**#KernelSecurity** **#RuntimeSecurity** **#ApplicationSecurity**
+**#KernelHooking** **#RingBuffer** **#SyscallSecurity** **#SecurityTooling**
+**#CyberSecurity** **#SystemsProgramming** **#Observability** **#Audit**
+**#DevSecOps** **#eBPFPrograms** **#KernelDevelopment** **#SecurityResearch**
+
+> Topics used to index this repository: `eBPF`, `LSM`, `security_file_open`,
+> `Linux security modules`, `default-deny allow-list`, `kernel-enforced access
+> control`, `C++20/23`, `libbpf`, `ring buffer`, `runtime security`, `threat
+> model`, `security events`.
+
+---
+
+## 15. License
 
 MIT — see [LICENSE](LICENSE).
