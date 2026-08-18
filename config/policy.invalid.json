@@ -1,0 +1,16 @@
+{
+    "version": 0,
+    "defaults": { "action": "MAYBE" },
+    "protected_resources": [
+        { "path": "/protected/secret.txt", "operation": "OPEN" }
+    ],
+    "rules": [
+        {
+            "id": "rule-with-typo",
+            "resource": "/protected/not-listed.txt",
+            "operation": "READ",
+            "process": { "type": "pid", "value": "1234" },
+            "action": "ALLOW"
+        }
+    ]
+}

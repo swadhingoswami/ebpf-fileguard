@@ -1,0 +1,33 @@
+# Build directories
+build/
+cmake-build-*/
+
+# CMake artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+CTestTestfile.cmake
+*.cmake.tmp
+
+# Generated eBPF artifacts (Linux only)
+ebpf/vmlinux.h
+ebpf/fileguard.bpf.o
+ebpf/fileguard.skel.h
+ebpf/.output/
+
+# Runtime state
+*.sock
+*.pid
+logs/
+*.log
+
+# Test/profiling artifacts
+*.profraw
+*.profdata
+.profiler/
+
+# Editor/OS noise
+.DS_Store
+.idea/
+.vscode/
+*.swp

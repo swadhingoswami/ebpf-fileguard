@@ -1,0 +1,10 @@
+{
+    "version": 2,
+    "defaults": {
+        "action": "DENY"
+    },
+    "protected_resources": [
+        { "path": "/protected/secret.txt", "operation": "OPEN" }
+    ],
+    "rules": []
+}

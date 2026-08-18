@@ -1,0 +1,18 @@
+{
+    "version": 1,
+    "defaults": {
+        "action": "DENY"
+    },
+    "protected_resources": [
+        { "path": "/protected/secret.txt", "operation": "OPEN" }
+    ],
+    "rules": [
+        {
+            "id": "allow-backup-agent",
+            "resource": "/protected/secret.txt",
+            "operation": "OPEN",
+            "process": { "type": "exe_path", "value": "/usr/local/bin/backup-agent" },
+            "action": "ALLOW"
+        }
+    ]
+}
