@@ -67,18 +67,33 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y g++ clang cmake pkg-config libelf-dev || true
           sudo apt-get install -y libbpf-dev || true
-          sudo apt-get install -y bpftool linux-tools-common || true
-          # Some runner kernels only ship bpftool under a versioned tools dir.
-          if ! command -v bpftool >/dev/null 2>&1; then
-            sudo apt-get install -y linux-tools-generic linux-tools-$(uname -r) || true
-            sudo ln -sf /usr/lib/linux-tools-$(uname -r)/bpftool /usr/local/bin/bpftool || true
+
+      - name: Install bpftool (best effort)
+        run: |
+          if bpftool version >/dev/null 2>&1; then
+            echo "bpftool already functional"
+            exit 0
+          fi
+          # On Ubuntu `bpftool` is a virtual package provided by
+          # linux-tools-<version>; the runner kernel version may have no
+          # matching package, so install the generic tools and link the real
+          # binary (BTF dump / skeleton gen work regardless of running kernel).
+          sudo apt-get install -y linux-tools-generic || true
+          real_bpftool=$(ls /usr/lib/linux-tools-*/bpftool 2>/dev/null | head -1)
+          if [ -n "$real_bpftool" ]; then
+            sudo ln -sf "$real_bpftool" /usr/local/bin/bpftool
+          fi
+          if bpftool version >/dev/null 2>&1; then
+            echo "bpftool OK: $(bpftool version 2>&1 | head -1)"
+          else
+            echo "bpftool unavailable (skipping eBPF build)"
           fi
 
-      - name: Preflight — kernel BTF, bpftool, libbpf
+      - name: Preflight — kernel BTF, working bpftool, libbpf
         id: preflight
         run: |
           if [ -r /sys/kernel/btf/vmlinux ] \
-             && command -v bpftool >/dev/null 2>&1 \
+             && bpftool version >/dev/null 2>&1 \
              && pkg-config --exists libbpf; then
             echo "available=yes" >> "$GITHUB_OUTPUT"
           else

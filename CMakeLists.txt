@@ -76,6 +76,9 @@ target_compile_options(fileguard_core PRIVATE
 
 # ---------------------------------------------------------------- eBPF backend
 if(ENABLE_EBPF)
+    # Lets the portable core know the Linux eBPF enforcer is available at link
+    # time (enforcer.cpp selects LinuxEBPFEnforcer vs NullEnforcer).
+    add_compile_definitions(FILEGUARD_HAS_EBPF=1)
     add_subdirectory(ebpf)
     target_link_libraries(fileguard_core PRIVATE fileguard_ebpf_backend)
 else()

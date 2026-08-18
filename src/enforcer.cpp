@@ -4,13 +4,13 @@
 #include <chrono>
 #include <thread>
 
-#if defined(__linux__)
+#if defined(__linux__) && defined(FILEGUARD_HAS_EBPF)
 #include "fileguard/ebpf_manager.hpp"
 #endif
 
 namespace fileguard {
 
-#if defined(__linux__)
+#if defined(__linux__) && defined(FILEGUARD_HAS_EBPF)
 
 std::unique_ptr<IEnforcer> create_enforcer(const EnforcerConfig& cfg) {
     return std::make_unique<LinuxEBPFEnforcer>(cfg);
@@ -63,6 +63,6 @@ std::unique_ptr<IEnforcer> create_enforcer(const EnforcerConfig& cfg) {
     return std::make_unique<NullEnforcer>(cfg);
 }
 
-#endif  // __linux__
+#endif  // __linux__ && FILEGUARD_HAS_EBPF
 
 }  // namespace fileguard
