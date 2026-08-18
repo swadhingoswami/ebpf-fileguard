@@ -400,6 +400,46 @@ A quick end-to-end checklist with the expected output. Run these after
 | 10 | `ln /protected/secret.txt /tmp/hard; cat /tmp/hard` | **`Permission denied.`** (hard link cannot bypass) |
 | 11 | `guardctl stop; cat /protected/secret.txt` | succeeds — **documented fail-open** after unload |
 
+### Demo run — copy-paste, with expected output
+
+```text
+1) $ sudo guardctl status
+   fileguard: running
+     backend:        ebpf-lsm
+     attached:       yes
+     enforcing:      yes
+     policy version: 1
+     protected:      1
+     rules:          1
+
+2) $ sudo guardctl policy load /tmp/fileguard-demo-policy.json
+   policy loaded (version 1)
+
+3) Authorized process — backup-agent → /protected/secret.txt
+   $ /usr/local/bin/backup-agent /protected/secret.txt
+   Access allowed.
+   launch-codes: alpha-9-foxtrot-1138          ✅ ALLOW
+
+4) Unauthorized process — cat → /protected/secret.txt
+   $ cat /protected/secret.txt
+   cat: /protected/secret.txt: Permission denied   ❌ DENY
+
+5) Root attempt — sudo cat → /protected/secret.txt
+   $ sudo cat /protected/secret.txt
+   cat: /protected/secret.txt: Permission denied   ❌ DENY
+
+6) $ sudo guardctl events            (live event stream for the three opens above)
+   PID      UID   COMM           PROCESS                        FILE                       OP     ACTION  REASON
+   1234     0     backup-agent   /usr/local/bin/backup-agent    /protected/secret.txt     OPEN   ALLOW   POLICY_RULE
+   4567     1000  cat            /usr/bin/cat                   /protected/secret.txt     OPEN   DENY    DEFAULT_DENY
+   7890     0     sudo           /usr/bin/sudo                  /protected/secret.txt     OPEN   DENY    DEFAULT_DENY
+```
+
+Note on step 5: the LSM hook runs for **every** open regardless of UID, so even
+root cannot bypass the allow-list (unlike plain DAC permissions). The event
+shows the decision with `DEFAULT_DENY` — the rule set has no entry for
+`/usr/bin/sudo`.
+
 Expected event output (from `guardctl events`):
 
 ```
