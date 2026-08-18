@@ -25,6 +25,12 @@ std::string bpf_err(int e) {
     return std::string(" (errno=") + std::to_string(e) + ": " + std::strerror(e) + ")";
 }
 
+// The opaque void* members in ebpf_manager.hpp hide the libbpf types from the
+// portable header; recover the concrete pointers here (C++ has no implicit
+// void* -> T* conversion).
+struct fileguard_bpf* skel_of(void* p) { return static_cast<struct fileguard_bpf*>(p); }
+struct ring_buffer* ring_of(void* p) { return static_cast<struct ring_buffer*>(p); }
+
 }  // namespace
 
 LinuxEBPFEnforcer::LinuxEBPFEnforcer(EnforcerConfig cfg) : cfg_(std::move(cfg)) {}
@@ -118,9 +124,9 @@ ResultVoid LinuxEBPFEnforcer::apply_policy(const CompiledPolicy& policy) {
     std::lock_guard<std::mutex> lock(state_mu_);
     if (!skel_) return err("enforcer not loaded");
 
-    const int cfg_fd = bpf_map__fd(skel_->maps.fileguard_config);
-    const int prot_fd = bpf_map__fd(skel_->maps.fileguard_protected);
-    const int rules_fd = bpf_map__fd(skel_->maps.fileguard_rules);
+    const int cfg_fd = bpf_map__fd(skel_of(skel_)->maps.fileguard_config);
+    const int prot_fd = bpf_map__fd(skel_of(skel_)->maps.fileguard_protected);
+    const int rules_fd = bpf_map__fd(skel_of(skel_)->maps.fileguard_rules);
 
     // Phase 1: pause enforcement (fail-open window) so a half-updated map
     // never makes a wrong decision. The window is bounded by the map writes.
@@ -177,8 +183,8 @@ EnforcerStatus LinuxEBPFEnforcer::status() const {
     if (skel_) {
         __u32 zero = 0;
         fileguard_config_t cfg{};
-        if (bpf_map_lookup_elem(bpf_map__fd(skel_->maps.fileguard_config), &zero,
-                                &cfg) == 0) {
+        if (bpf_map_lookup_elem(bpf_map__fd(skel_of(skel_)->maps.fileguard_config),
+                                &zero, &cfg) == 0) {
             s.enforcing = cfg.enabled != 0;
             s.policy_version = static_cast<int32_t>(cfg.policy_version);
         }
@@ -189,7 +195,7 @@ EnforcerStatus LinuxEBPFEnforcer::status() const {
 void LinuxEBPFEnforcer::run(std::stop_token stop) {
     if (!ring_) return;
     while (!stop.stop_requested()) {
-        const int n = ring_buffer__poll(ring_, 100);
+        const int n = ring_buffer__poll(ring_of(ring_), 100);
         if (n < 0) {
             std::lock_guard<std::mutex> lock(state_mu_);
             status_.detail = "ring buffer poll error" + bpf_err(errno);
@@ -201,12 +207,12 @@ void LinuxEBPFEnforcer::run(std::stop_token stop) {
 ResultVoid LinuxEBPFEnforcer::detach() {
     std::lock_guard<std::mutex> lock(state_mu_);
     if (ring_) {
-        ring_buffer__free(ring_);
+        ring_buffer__free(ring_of(ring_));
         ring_ = nullptr;
     }
     if (skel_) {
-        fileguard_bpf__detach(skel_);
-        fileguard_bpf__destroy(skel_);
+        fileguard_bpf__detach(skel_of(skel_));
+        fileguard_bpf__destroy(skel_of(skel_));
         skel_ = nullptr;
     }
     status_.attached = false;
