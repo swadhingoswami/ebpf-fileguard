@@ -10,6 +10,15 @@
 > explicitly authorized executable may open them — nothing else, not even
 > `cat` as root — and every decision is emitted as a structured security event.
 
+## Demo video
+
+Watch the end-to-end walkthrough (install → enforce → verify):
+
+<video src="https://github.com/swadhingoswami/ebpf-fileguard/raw/main/media/eBPF_FileGuard_demo.mp4" controls width="100%"></video>
+
+- ▶ **[Watch / download the demo video](media/eBPF_FileGuard_demo.mp4)**
+  (`media/eBPF_FileGuard_demo.mp4`, ~8 MB)
+
 **Build details**
 
 | | |
@@ -24,6 +33,7 @@
 
 ## Table of contents
 
+0. [▶ Demo video](#demo-video)
 1. [The problem we are solving](#1-the-problem-we-are-solving)
 2. [How it works](#2-how-it-works)
 3. [Diagrams](#3-diagrams)
@@ -637,6 +647,7 @@ tests/                   Catch2 unit tests
 config/                  example / deny-all / invalid policies
 scripts/                 build-linux, setup-demo, integration-tests, bench
 docs/                    01-problem … 13-design-diagrams
+media/                   eBPF_FileGuard_demo.mp4 (demo video)
 ```
 
 ---
