@@ -45,6 +45,13 @@ conditions the security properties hold.
 
 - Requires Linux ≥ 5.7 (eBPF LSM), ≥ 5.8 (ring buffer), BTF for CO-RE,
   `bpf` in the `CONFIG_LSM` order, and `CAP_BPF`/`CAP_SYS_ADMIN` at load.
+- **The bpf LSM must be enabled in `CONFIG_LSM`.** Merely having the symbols
+  compiled in is not enough: an attached program whose LSM is not in the
+  boot-time LSM order is *never invoked* — it would silently enforce nothing.
+  FileGuard detects this (it refuses to start unless `bpf` appears in
+  `/sys/kernel/security/lsm`) and fails open with a loud error instead of
+  claiming enforcement. Some kernels (e.g. GitHub-hosted Azure runners) do
+  not enable the bpf LSM.
 - Field offsets are resolved with CO-RE against the *running* kernel's BTF;
   a program compiled against a different kernel must be rebuilt (the build
   regenerates `vmlinux.h` automatically).

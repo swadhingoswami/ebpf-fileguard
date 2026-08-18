@@ -628,7 +628,17 @@ cmake -S . -B build && cmake --build build -j
 ```
 
 Covers policy parsing/validation, decision logic, policy compilation, path
-resolution, the SPSC queue and the sinks. Also runnable via `ctest`.
+resolution, the SPSC queue and the event sinks. Also runnable via `ctest`.
+
+### CI
+
+`.github/workflows/ci.yml` builds and unit-tests the portable core on
+**macOS and Linux**, and builds the eBPF backend on Linux. The full
+integration suite runs only when the host kernel actually enables the
+**bpf LSM** (checked via `/sys/kernel/security/lsm`); on kernels that do not
+(e.g. GitHub-hosted Azure runners) the job skips with a notice. FileGuard
+refuses to claim enforcement on such kernels rather than silently enforcing
+nothing.
 
 ### Integration tests (Linux, root)
 

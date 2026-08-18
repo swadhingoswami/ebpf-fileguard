@@ -7,6 +7,7 @@
 
 #include <cerrno>
 #include <cstring>
+#include <fstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -71,6 +72,32 @@ ResultVoid LinuxEBPFEnforcer::load() {
         return err("fileguard_bpf__attach failed" + msg +
                    " — check that the kernel was booted with the bpf LSM "
                    "in the CONFIG_LSM=... ordering.");
+    }
+
+    // Refuse to claim enforcement when the bpf LSM is not actually enabled:
+    // the program would be attached yet NEVER invoked (the kernel only runs
+    // LSM hooks for LSMs listed in CONFIG_LSM), silently enforcing nothing.
+    {
+        std::ifstream lsm("/sys/kernel/security/lsm");
+        if (!lsm) {
+            fileguard_bpf__detach(skel);
+            fileguard_bpf__destroy(skel);
+            return err("cannot read /sys/kernel/security/lsm — the kernel "
+                       "LSM framework (CONFIG_SECURITY) may be disabled. The "
+                       "security_file_open hook would never run. Refusing to "
+                       "claim enforcement (fail-open).");
+        }
+        std::string lsm_list((std::istreambuf_iterator<char>(lsm)),
+                             std::istreambuf_iterator<char>());
+        if (lsm_list.find("bpf") == std::string::npos) {
+            fileguard_bpf__detach(skel);
+            fileguard_bpf__destroy(skel);
+            return err("the bpf LSM is not enabled on this kernel "
+                       "(CONFIG_LSM order: " + lsm_list +
+                       "). The security_file_open hook would never fire, so "
+                       "nothing would be enforced. Refusing to claim "
+                       "enforcement (fail-open).");
+        }
     }
 
     ring_ = ring_buffer__new(bpf_map__fd(skel->maps.fileguard_events),
