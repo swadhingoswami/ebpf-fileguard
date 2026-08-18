@@ -65,18 +65,21 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y g++ clang cmake pkg-config libelf-dev \
-            libbpf-dev bpftool linux-tools-common || true
+          sudo apt-get install -y g++ clang cmake pkg-config libelf-dev || true
+          sudo apt-get install -y libbpf-dev || true
+          sudo apt-get install -y bpftool linux-tools-common || true
           # Some runner kernels only ship bpftool under a versioned tools dir.
           if ! command -v bpftool >/dev/null 2>&1; then
             sudo apt-get install -y linux-tools-generic linux-tools-$(uname -r) || true
             sudo ln -sf /usr/lib/linux-tools-$(uname -r)/bpftool /usr/local/bin/bpftool || true
           fi
 
-      - name: Preflight — kernel BTF + bpftool
+      - name: Preflight — kernel BTF, bpftool, libbpf
         id: preflight
         run: |
-          if [ -r /sys/kernel/btf/vmlinux ] && command -v bpftool >/dev/null 2>&1; then
+          if [ -r /sys/kernel/btf/vmlinux ] \
+             && command -v bpftool >/dev/null 2>&1 \
+             && pkg-config --exists libbpf; then
             echo "available=yes" >> "$GITHUB_OUTPUT"
           else
             echo "available=no" >> "$GITHUB_OUTPUT"
@@ -105,4 +108,4 @@ jobs:
       - name: Notify skip
         if: steps.preflight.outputs.available == 'no'
         run: |
-          echo "::notice::Runner kernel lacks BTF (/sys/kernel/btf/vmlinux) or bpftool; eBPF backend and integration tests were skipped. The portable core built and passed unit tests."
+          echo "::notice::Runner kernel lacks BTF (/sys/kernel/btf/vmlinux), bpftool, or libbpf; eBPF backend and integration tests were skipped. The portable core built and passed unit tests."
