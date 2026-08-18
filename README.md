@@ -1,5 +1,7 @@
 # eBPF FileGuard
 
+[![CI](https://github.com/swadhingoswami/ebpf-fileguard/actions/workflows/ci.yml/badge.svg)](https://github.com/swadhingoswami/ebpf-fileguard/actions/workflows/ci.yml)
+
 **Kernel-Assisted Runtime File Access Control**
 
 A Linux runtime file-access security system built with **eBPF LSM** and

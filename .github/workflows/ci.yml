@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ----------------------------------------------------------------------
+  # Portable core (no eBPF) — builds and unit-tests on macOS and Linux.
+  # ----------------------------------------------------------------------
+  macos-core:
+    name: macOS — core build + unit tests
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - name: Build
+        run: cmake --build build -j3
+      - name: Unit tests
+        run: ./build/fileguard_tests
+      - name: ctest
+        run: cd build && ctest --output-on-failure
+
+  linux-core:
+    name: Linux — core build + unit tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ cmake pkg-config
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+      - name: Unit tests
+        run: ./build/fileguard_tests
+      - name: ctest
+        run: cd build && ctest --output-on-failure
+
+  # ----------------------------------------------------------------------
+  # eBPF LSM backend + full integration suite. GitHub's Ubuntu runners ship
+  # BTF-enabled kernels (CONFIG_DEBUG_INFO_BTF), so enforcement is testable
+  # in CI. If the environment lacks BTF or bpftool, the job skips gracefully.
+  # ----------------------------------------------------------------------
+  linux-ebpf:
+    name: Linux — eBPF backend + integration tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y g++ clang cmake pkg-config libelf-dev \
+            libbpf-dev bpftool linux-tools-common || true
+          # Some runner kernels only ship bpftool under a versioned tools dir.
+          if ! command -v bpftool >/dev/null 2>&1; then
+            sudo apt-get install -y linux-tools-generic linux-tools-$(uname -r) || true
+            sudo ln -sf /usr/lib/linux-tools-$(uname -r)/bpftool /usr/local/bin/bpftool || true
+          fi
+
+      - name: Preflight — kernel BTF + bpftool
+        id: preflight
+        run: |
+          if [ -r /sys/kernel/btf/vmlinux ] && command -v bpftool >/dev/null 2>&1; then
+            echo "available=yes" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=no" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure (core only if BTF unavailable)
+        run: |
+          if [ "${{ steps.preflight.outputs.available }}" = "yes" ]; then
+            cmake -S . -B build -DENABLE_EBPF=ON -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          else
+            cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          fi
+
+      - name: Build
+        run: cmake --build build -j"$(nproc)"
+
+      - name: Unit tests
+        run: ./build/fileguard_tests
+
+      - name: Demo setup + integration tests (root, needs eBPF LSM)
+        if: steps.preflight.outputs.available == 'yes'
+        run: |
+          sudo ./scripts/setup-demo.sh
+          sudo ./scripts/integration-tests.sh
+
+      - name: Notify skip
+        if: steps.preflight.outputs.available == 'no'
+        run: |
+          echo "::notice::Runner kernel lacks BTF (/sys/kernel/btf/vmlinux) or bpftool; eBPF backend and integration tests were skipped. The portable core built and passed unit tests."
