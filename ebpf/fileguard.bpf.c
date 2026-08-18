@@ -36,6 +36,13 @@
 
 char LICENSE[] SEC("license") = "GPL";
 
+/* errno.h is unavailable in the freestanding BPF build (-nostdinc); EACCES
+ * is 13 on every Linux architecture. Used as the LSM hook return value to
+ * deny opens ("Permission denied"). */
+#ifndef EACCES
+#define EACCES 13
+#endif
+
 /* ---------------- maps ---------------- */
 
 /* Protected resources: membership test on FileId. */
