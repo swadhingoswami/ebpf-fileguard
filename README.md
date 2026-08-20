@@ -688,7 +688,7 @@ the host returns to fail-open until a controller runs again.
 > Topics used to index this repository: `eBPF`, `LSM`, `security_file_open`,
 > `Linux security modules`, `default-deny allow-list`, `kernel-enforced access
 > control`, `C++20/23`, `libbpf`, `ring buffer`, `runtime security`, `threat
-> model`, `security events`.
+> model`, `security events`
 
 ---
 
