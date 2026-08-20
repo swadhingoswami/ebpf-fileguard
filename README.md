@@ -683,8 +683,7 @@ the host returns to fail-open until a controller runs again.
 **#DefaultDeny** **#AllowList** **#LSM** **#BPF** **#CO-RE** **#BTF**
 **#KernelSecurity** **#RuntimeSecurity** **#ApplicationSecurity**
 **#KernelHooking** **#RingBuffer** **#SyscallSecurity** **#SecurityTooling**
-**#CyberSecurity** **#SystemsProgramming** **#Observability** **#Audit**
-**#DevSecOps** **#eBPFPrograms** **#KernelDevelopment** **#SecurityResearch**
+**#CyberSecurity** **#SystemsProgramming** **#KernelDevelopment** **#SecurityResearch**
 
 > Topics used to index this repository: `eBPF`, `LSM`, `security_file_open`,
 > `Linux security modules`, `default-deny allow-list`, `kernel-enforced access
